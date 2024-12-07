@@ -2,12 +2,12 @@ import re
 import sys
 import toml
 
-
 class ConfigParser:
-    def init(self):
+    def __init__(self):
         self.constants = {}
 
     def parse(self, text):
+
         # Удаление комментариев
         text = re.sub(r'#.*', '', text)
 
@@ -19,7 +19,7 @@ class ConfigParser:
         return data
 
     def parse_constants(self, text):
-        #Парсинг и вычисление констант
+        #Парсинг и вычисление констант let и !{}
         const_pattern = r'let\s+([a-zA-Z][_a-zA-Z0-9]*)\s*=\s*(.+?);'
         for match in re.findall(const_pattern, text):
             name, value = match
@@ -43,7 +43,7 @@ class ConfigParser:
             raise ValueError(f"Неподдерживаемое выражение: {expression}")
 
     def parse_blocks(self, text):
-        #Обработка словарей
+        """Обработка словарей (включая вложенные)"""
         if not text.startswith('([') or not text.endswith('])'):
             raise ValueError("Некорректный блок словаря")
         inner_content = text[2:-2].strip()  # Убираем ([ и ])
@@ -65,7 +65,7 @@ class ConfigParser:
         return parsed_dict
 
     def parse_value(self, value):
-        #Определение типа значения
+        #Определение типа значения: число, строка, константа или словарь
         if re.match(r'^\d+$', value):  # Число
             return int(value)
         elif re.match(r'^@"(.*)"$', value):  # Строка
@@ -73,12 +73,12 @@ class ConfigParser:
         elif re.match(r'^!{[a-zA-Z][_a-zA-Z0-9]*}$', value):  # Константа
             return self.evaluate(value)
         elif re.match(r'^\(\[.*\]\)$', value, re.DOTALL):  # Вложенный словарь
-            return self.parse_blocks(value)
+            return self.parse_blocks(value)  # Вызов для вложенных блоков
         else:
             raise ValueError(f"Неподдерживаемое значение: {value}")
 
     def split_entries(self, text):
-        #Разделение записей в словаре
+        #Разделение записей в словаре с учётом вложенности
         entries = []
         current = []
         depth = 0
